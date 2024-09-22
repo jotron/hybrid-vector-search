@@ -1,0 +1,3 @@
+# Data is too large
+*.bin
+**/build
