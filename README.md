@@ -9,3 +9,10 @@ make
 cd ../
 ./build/hybrid_vector_search ../data/dummy-data.bin ../data/dummy-queries.bin
 ```
+
+
+To execute rust
+```
+cd rust
+cargo run ../data/dummy-data.bin ../data/dummy-queries.bin
+```

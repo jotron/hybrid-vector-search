@@ -1,102 +1,148 @@
+use bytemuck;
+use ordered_float::NotNan;
+use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::env;
+use std::fs::File;
+use std::io::{self, BufReader, Read};
+use std::path::Path;
 use std::time::Instant;
-use std::cmp::Ordering;
 
 const VECTOR_DIMENSIONS: u32 = 100;
 const NODE_DIMENSIONS: u32 = 102;
 const QUERY_DIMENSIONS: u32 = 104;
-const K_NUM_NEAREST_NEIGHBOUR = 100;
-
-struct Pair {
-    dist: f32,
-    index: u32,
-}
-impl Eq for Pair {}
-impl Ord for Pair {
-    fn cmp(&self, other: &Self) -> Ordering {
-        // Reverse order for max-heap behavior (since we need min-heap)
-        other.dist.partial_cmp(&self.dist).unwrap()
-    }
-}
-impl PartialOrd for Pair {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
+const K_NEAREST_NEIGHBOURS: u32 = 100;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-
     let source_path = &args[1];
     let query_path = &args[2];
-    let output_path = &args[3];
 
-    let now = Instant::now();
+    let start = Instant::now();
 
     // Read nodes & queries
-    let mut nodes: Vec<Vec<f32>>;
-    let mut queries: Vec<Vec<f32>>;
-    read_bin(source_path, NODE_DIMENSIONS, &mut nodes);
-    read_bin(query_path, QUERY_DIMENSIONS, &mut queries);
+    let nodes = read_bin(source_path, NODE_DIMENSIONS as usize);
+    let queries = read_bin(query_path, QUERY_DIMENSIONS as usize);
 
-    // Generate ground truth
-    let mut knns: Vec<Vec<u32>>;
-    bruteforce(&nodes, &queries, &mut knns);
+    // Calculate
+    let knns: Vec<Vec<u32>> = brute_force(&nodes, &queries);
 
-    // Compare to ground truth on disk to calculate recall.
-    let mut gt_knns: Vec<Vec<u32>>;
-    read_output_bin("../../data/label.bin", &mut gt_knns, queries.len());
-    let recall = get_knn_recall(knns, gt_knns);
+    // Read ground truth
+    let gt_knns: Vec<Vec<u32>> = read_output_bin("../data/dummy-gt.bin", queries.len());
+
+    // Calculate recall
+    let recall = get_knn_recall(&knns, &gt_knns);
     println!("Recall: {}", recall);
-
-    println!("Total time: {}", now.elapsed().as_secs());
+    println!("Total time: {}", start.elapsed().as_secs());
 }
 
-fn brute_force(nodes: &[Vec<f32>], queries: &[Vec<f32>], knns: &mut Vec<Vec<u32>>) {
-    let n = nodes.len();
-    let nq = queries.len();
+fn read_bin(path: &str, dim: usize) -> Vec<Vec<f32>> {
+    println!("Reading Data: {}", path);
 
-    knns.resize(nq, Vec::new());
+    let file = File::open(Path::new(path)).unwrap();
+    let mut reader = BufReader::new(file);
 
-    for (i, query) in queries.iter().enumerate() {
-        let query_type = query[0] as u32;
-        let v = query[1] as i32;
-        let l = query[2];
-        let r = query[3];
-        let vec = &query[4..];
+    let mut n_points = [0u8; 4];
+    reader.read_exact(&mut n_points).unwrap();
+    let n_points = i32::from_le_bytes(n_points) as usize;
 
-        let mut pq = BinaryHeap::new();
+    println!("# of points: {}", n_points);
 
-        for (j, node) in nodes.iter().enumerate() {
-            let node_vec = &node[2..]; // skip first 2 dimensions
-            let node_val = node[0] as i32;
-            let node_time = node[1];
+    let mut data = vec![vec![0f32; dim]; n_points];
+    let mut buffer = vec![0f32; dim];
+    for i in 0..n_points {
+        reader
+            .read_exact(bytemuck::cast_slice_mut(&mut buffer))
+            .unwrap();
+        data[i] = buffer.clone();
+    }
 
-            let dist = match query_type {
-                0 => Some(normal_l2(node_vec, vec)),
-                1 if node_val == v => Some(normal_l2(node_vec, vec)),
-                2 if node_time >= l && node_time <= r => Some(normal_l2(node_vec, vec)),
-                3 if v == node_val && node_time >= l && node_time <= r => {
-                    Some(normal_l2(node_vec, vec))
+    println!("Finish Reading Data");
+    data
+}
+
+fn read_output_bin(path: &str, size: usize) -> Vec<Vec<u32>> {
+    println!("Reading Data: {}", path);
+
+    let file = File::open(Path::new(path)).unwrap();
+    let mut reader = BufReader::new(file);
+
+    let mut data = vec![vec![0u32; K_NEAREST_NEIGHBOURS as usize]; size];
+    let mut buffer = vec![0u32; K_NEAREST_NEIGHBOURS as usize];
+    for i in 0..size {
+        reader
+            .read_exact(bytemuck::cast_slice_mut(&mut buffer))
+            .unwrap();
+        data[i] = buffer.clone();
+    }
+
+    println!("Finish Reading Data");
+    data
+}
+
+fn get_knn_recall(knns: &Vec<Vec<u32>>, gt_knns: &Vec<Vec<u32>>) -> f32 {
+    let mut correct = 0;
+    for i in 0..knns.len() {
+        for j in 0..knns[0].len() {
+            for k in 0..knns[0].len() {
+                if knns[i][k] == gt_knns[i][j] {
+                    correct += 1;
+                    break;
                 }
-                _ => None,
-            };
-
-            pq.push(Pair {
-                dist: -dist,
-                index: j as u32,
-            });
-        }
-
-        knns[i].resize(K_NUM_NEAREST_NEIGHBOUR, 0);
-        for j in (0..K_NUM_NEAREST_NEIGHBOUR).rev() {
-            let res = pq.pop().unwrap();
-            knns[i][j] = res.index;
+            }
         }
     }
+    correct as f32 / knns.len() as f32 / knns[0].len() as f32
 }
 
-fn normal_l2(base_vec: &[f32], query_vec: &[f32], d: usize) -> f32 {
-    base_vec.iter().zip(query_vec).take(d).map(|(b, q)| (b - q).powi(2)).sum()
+fn brute_force(nodes: &Vec<Vec<f32>>, queries: &Vec<Vec<f32>>) -> Vec<Vec<u32>> {
+    let mut result = vec![vec![0u32; K_NEAREST_NEIGHBOURS as usize]; queries.len()];
+
+    for i in 0..queries.len() {
+        let query_type = queries[i][0] as u32;
+        let v = queries[i][1] as i32;
+        let l = queries[i][2];
+        let r = queries[i][3];
+        let vec = &queries[i][4..QUERY_DIMENSIONS as usize];
+
+        let mut pq: BinaryHeap<(NotNan<f32>, u32)> = BinaryHeap::new();
+
+        for j in 0..nodes.len() {
+            let base_vec = &nodes[j][2..]; // skip first 2 dimensions
+            let bv = nodes[j][0] as i32;
+            let bt = nodes[j][1];
+
+            let dist = NotNan::new(normal_l2(base_vec, vec)).unwrap();
+
+            match query_type {
+                0 => pq.push((-dist, j as u32)),
+                1 if v == bv => pq.push((-dist, j as u32)),
+                2 if bt >= l && bt <= r => pq.push((-dist, j as u32)),
+                3 if v == bv && bt >= l && bt <= r => pq.push((-dist, j as u32)),
+                _ => (),
+            }
+        }
+
+        // Store
+        if pq.len() < K_NEAREST_NEIGHBOURS as usize {
+            println!("id: {}", i);
+            println!("query type: {} v: {} l: {} r: {}", query_type, v, l, r);
+            println!("K: {}", pq.len());
+        }
+        for j in 0..K_NEAREST_NEIGHBOURS as usize {
+            if let Some((_dist, index)) = pq.pop() {
+                result[i][j] = index;
+            }
+        }
+    }
+
+    return result;
+}
+
+fn normal_l2(base_vec: &[f32], query_vec: &[f32]) -> f32 {
+    base_vec
+        .iter()
+        .zip(query_vec)
+        .map(|(b, q)| (b - q).powi(2))
+        .sum()
 }
