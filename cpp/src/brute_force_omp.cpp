@@ -5,6 +5,7 @@
 #include <queue>
 #include <chrono>
 #include <memory>
+#include <execution>
 #include "hybrid_vector_search.h"
 
 using std::cout;
@@ -38,6 +39,7 @@ void solve(const vector<vector<float>> &nodes, const vector<vector<float>> &quer
   const int K = 100;
   gt.resize(nq);
 
+#pragma omp parallel for
   for (size_t i = 0; i < nq; i++)
   {
     uint32_t query_type = queries[i][0];

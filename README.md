@@ -1,6 +1,6 @@
 # hybrid-vector-search
 
-To execute the cpp baseline on the dummy dataset execute
+To execute the cpp baseline on the dummy dataset execute.
 ```
 mkdir cpp/build
 cd cpp/build
@@ -14,5 +14,9 @@ cd ../
 To execute rust
 ```
 cd rust
-cargo run ../data/dummy-data.bin ../data/dummy-queries.bin
+cargo run ../data/dummy-data.bin ../data/dummy-queries.bin ../data/dummy-gt.bin
+cargo run --release  ../data/contest-data-release-1m.bin ../data/contest-queries-release-1m.bin ../data/1m-gt.bin
 ```
+
+## Performance Measurements
+
