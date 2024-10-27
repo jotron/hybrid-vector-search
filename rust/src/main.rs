@@ -5,8 +5,10 @@ use std::io::{BufReader, Read};
 use std::path::Path;
 use std::time::Instant;
 
-mod brute_force;
-mod brute_force_opt;
+//mod presorted_naive;
+mod presorted_ngt;
+//mod brute_force;
+//mod brute_force_opt;
 
 const NODE_DIMENSIONS: usize = 102;
 const QUERY_DIMENSIONS: usize = 104;
@@ -25,7 +27,7 @@ fn main() {
     // Start Timing
     let start = Instant::now();
     // Calculate
-    let knns: Vec<Vec<u32>> = brute_force_opt::solve(&nodes, &queries);
+    let knns: Vec<Vec<u32>> = presorted_ngt::solve(&nodes, &queries);
     // Stop Timing
     let duration = start.elapsed().as_millis();
 
