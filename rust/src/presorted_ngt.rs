@@ -1,8 +1,4 @@
-use ngt::{NgtIndex, NgtProperties, NgtQuery};
-/**
- * For queries of type 0: Use NGT
- * For queries of type 1, 2, 3 use brute force on subset
- */
+use ngt::{NgtIndex, NgtProperties, NgtDistance};
 use ordered_float::NotNan;
 use rayon::prelude::*;
 use std::cmp::Ordering;
@@ -10,13 +6,15 @@ use std::collections::BinaryHeap;
 
 const QUERY_DIMENSIONS: usize = 104;
 const K_NEAREST_NEIGHBOURS: usize = 100;
+const VECTOR_DIMENSION: usize = 100;
 
-pub fn solve(nodes: &Vec<Vec<f32>>, queries: &Vec<Vec<f32>>) -> Vec<Vec<u32>> {
+pub fn solve(nodes: Vec<Vec<f32>>, queries: Vec<Vec<f32>>) -> Vec<Vec<u32>> {
     let mut result = vec![vec![0u32; K_NEAREST_NEIGHBOURS]; queries.len()];
 
     // Pre-Sorting
     let node_values: Vec<i32> = nodes.iter().map(|x| x[0] as i32).collect();
     let node_timestamps: Vec<f32> = nodes.iter().map(|x| x[1]).collect();
+    let node_vectors: Vec<Vec<f32>> = nodes.iter().map(|x| x[2..].to_vec()).collect();
     let mut node_ids_sorted_by_timestamp = Vec::from_iter(0..nodes.len());
     node_ids_sorted_by_timestamp.sort_by_key(|i| NotNan::new(node_timestamps[*i]).unwrap());
     let mut node_ids_sorted_by_value_timestamp = Vec::from_iter(0..nodes.len());
@@ -24,15 +22,15 @@ pub fn solve(nodes: &Vec<Vec<f32>>, queries: &Vec<Vec<f32>>) -> Vec<Vec<u32>> {
         .sort_by_key(|i| (node_values[*i], NotNan::new(node_timestamps[*i]).unwrap()));
 
     // Create index
-    let prop = NgtProperties::<f32>::dimension(3).distance_type(NgtDistance::L2);
-    let index: NgtIndex<f32> = NgtIndex::create("index", prop);
-    index.batch_insert(nodes);
-    index.build(8);
+    let prop = NgtProperties::<f32>::dimension(VECTOR_DIMENSION).unwrap().distance_type(NgtDistance::L2).unwrap();
+    let mut index: NgtIndex<f32> = NgtIndex::create("index", prop).unwrap();
+    index.insert_batch(node_vectors).unwrap();
+    index.build(8).unwrap(); // 8 Threads
 
     result
         .par_iter_mut()
         .enumerate()
-        .zip(queries)
+        .zip(&queries)
         .for_each(|((i, out), query)| {
             let query_type: u32 = query[0] as u32;
             let v = query[1] as i32;
@@ -45,10 +43,9 @@ pub fn solve(nodes: &Vec<Vec<f32>>, queries: &Vec<Vec<f32>>) -> Vec<Vec<u32>> {
 
             // Type 0 query
             if query_type == 0 {
-                for j in 0..nodes.len() {
-                    let base_vec = &nodes[j][2..]; // skip first 2 dimensions
-                    let dist = NotNan::new(normal_l2(base_vec, vec)).unwrap();
-                    pq.push((-dist, j as u32))
+                let res = index.search(&vec, K_NEAREST_NEIGHBOURS, 0.1).unwrap();
+                for search_result in res {
+                    pq.push((NotNan::new(0.0).unwrap(), search_result.id-1 as u32))
                 }
             }
             // Type 2 query (timestamp)
@@ -126,18 +123,14 @@ pub fn solve(nodes: &Vec<Vec<f32>>, queries: &Vec<Vec<f32>>) -> Vec<Vec<u32>> {
             }
 
             // Store
-            if pq.len() < K_NEAREST_NEIGHBOURS {
-                println!("id: {}", i);
-                println!("query type: {} v: {} l: {} r: {}", query_type, v, l, r);
-                println!("K: {}", pq.len());
-            }
+            //println!("id: {i} query type: {} v: {} l: {} r: {} K: {}", query_type, v, l, r, pq.len());
             for j in 0..K_NEAREST_NEIGHBOURS {
                 if let Some((_dist, index)) = pq.pop() {
                     out[j] = index;
                 }
             }
 
-            if i % 100 == 0 {
+            if i % 1000 == 0 {
                 println!("Processed {i}/{} queries", queries.len());
             }
         });

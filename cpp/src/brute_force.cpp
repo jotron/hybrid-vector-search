@@ -12,7 +12,6 @@ using std::endl;
 using std::pair;
 using std::string;
 using std::unique_ptr;
-using std::unordered_map;
 using std::vector;
 
 inline float normal_l2(float const *a, float const *b, unsigned dim)
@@ -99,7 +98,7 @@ void solve(const vector<vector<float>> &nodes, const vector<vector<float>> &quer
       pq.pop();
     }
 
-    if (i % 10 == 0)
+    if (i % 1000 == 0)
       cout << "Processed " << i << "/" << nq << " queries\n";
   }
 }

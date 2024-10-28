@@ -23,24 +23,26 @@ fn main() {
     // Read nodes & queries
     let nodes = read_bin(source_path, NODE_DIMENSIONS);
     let queries = read_bin(query_path, QUERY_DIMENSIONS);
+    let num_nodes = nodes.len();
+    let num_queries = queries.len();
 
     // Start Timing
     let start = Instant::now();
     // Calculate
-    let knns: Vec<Vec<u32>> = presorted_ngt::solve(&nodes, &queries);
+    let knns: Vec<Vec<u32>> = presorted_ngt::solve(nodes, queries);
     // Stop Timing
     let duration = start.elapsed().as_millis();
 
     // Read ground truth
-    let gt_knns: Vec<Vec<u32>> = read_output_bin(gt_path, queries.len());
+    let gt_knns: Vec<Vec<u32>> = read_output_bin(gt_path, num_queries);
 
     // Calculate recall
     let recall = get_knn_recall(&knns, &gt_knns);
     println!("Recall: {}", recall);
     println!(
         "Total time for {} nodes and {} queries: {}ms",
-        nodes.len(),
-        queries.len(),
+        num_nodes,
+        num_queries,
         duration
     );
 }

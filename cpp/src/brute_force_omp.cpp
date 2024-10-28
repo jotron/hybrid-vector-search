@@ -101,7 +101,7 @@ void solve(const vector<vector<float>> &nodes, const vector<vector<float>> &quer
       pq.pop();
     }
 
-    if (i % 10 == 0)
+    if (i % 1000 == 0)
       cout << "Processed " << i << "/" << nq << " queries\n";
   }
 }

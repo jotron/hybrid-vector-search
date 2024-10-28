@@ -5,13 +5,13 @@ use std::collections::BinaryHeap;
 const QUERY_DIMENSIONS: usize = 104;
 const K_NEAREST_NEIGHBOURS: usize = 100;
 
-pub fn solve(nodes: &Vec<Vec<f32>>, queries: &Vec<Vec<f32>>) -> Vec<Vec<u32>> {
+pub fn solve(nodes: Vec<Vec<f32>>, queries: Vec<Vec<f32>>) -> Vec<Vec<u32>> {
     let mut result = vec![vec![0u32; K_NEAREST_NEIGHBOURS]; queries.len()];
 
     result
         .par_iter_mut()
         .enumerate()
-        .zip(queries)
+        .zip(&queries)
         .for_each(|((i, out), query)| {
             let query_type = query[0] as u32;
             let v = query[1] as i32;
@@ -49,7 +49,7 @@ pub fn solve(nodes: &Vec<Vec<f32>>, queries: &Vec<Vec<f32>>) -> Vec<Vec<u32>> {
                 }
             }
 
-            if i % 100 == 0 {
+            if i % 1000 == 0 {
                 println!("Processed {i}/{} queries", queries.len());
             }
         });

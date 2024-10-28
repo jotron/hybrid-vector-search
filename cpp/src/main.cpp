@@ -18,8 +18,6 @@ using std::cout;
 using std::endl;
 using std::pair;
 using std::string;
-using std::unique_ptr;
-using std::unordered_map;
 using std::vector;
 
 /// @brief Save knng in binary format (uint32_t) with name "output.bin"
@@ -79,8 +77,7 @@ void ReadOutputBin(const std::string &file_path,
                    std::vector<std::vector<uint32_t>> &data,
                    const int num_dimensions = 100)
 {
-    std::cout << "Reading output data: " << file_path << std::endl;
-    std::cout << "# of points: " << num_queries << std::endl;
+    std::cout << "Reading output/ground-truth data: " << file_path << std::endl;
 
     std::ifstream ifs;
     ifs.open(file_path, std::ios::binary);
@@ -94,7 +91,7 @@ void ReadOutputBin(const std::string &file_path,
         data[counter++] = std::move(row);
     }
     ifs.close();
-    std::cout << "Finish reading output data" << endl;
+    std::cout << "Finish reading output/ground-truth data" << endl;
 }
 
 /// Copied from winning-solution/utils.h
@@ -130,11 +127,16 @@ float GetKNNRecall(const vector<vector<uint32_t>> &knns, const vector<vector<uin
 
 int main(int argc, char **argv)
 {
+    if (argc < 4)
+    {
+        cout << "Invalid Args" << endl;
+    }
     string source_path = std::string(argv[1]);
     string query_path = std::string(argv[2]);
     string output_path = std::string(argv[3]);
-
-    auto start = std::chrono::high_resolution_clock::now();
+    string option = "";
+    if (argc == 5)
+        option = std::string(argv[4]);
 
     // Read nodes
     const uint32_t num_data_dimensions = 102;
@@ -146,10 +148,16 @@ int main(int argc, char **argv)
     vector<vector<float>> queries;
     ReadBin(query_path, num_query_dimensions, queries);
 
-    // Generate ground truth and save to disk
+    // Calculate
     vector<vector<uint32_t>> knns;
+    auto start = std::chrono::high_resolution_clock::now();
     solve(nodes, queries, knns);
-    SaveKNN(knns, output_path);
+    auto end = std::chrono::high_resolution_clock::now();
+
+    if (option == "-overwriteOutput")
+    {
+        SaveKNN(knns, output_path);
+    }
 
     // Read groud truth
     vector<vector<uint32_t>> gt_nodes;
@@ -158,8 +166,6 @@ int main(int argc, char **argv)
     // Calculate recall
     float recall = GetKNNRecall(knns, gt_nodes);
     std::cout << "Recall: " << recall << "\n";
-
-    auto end = std::chrono::high_resolution_clock::now();
 
     cout << "Total time: " << std::chrono::duration_cast<std::chrono::seconds>(end - start).count() << "s" << endl;
     return 0;
