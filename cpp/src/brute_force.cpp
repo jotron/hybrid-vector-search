@@ -1,3 +1,7 @@
+/**
+ * Naive Single-Threaded C++ Implementation
+ */
+
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -33,8 +37,6 @@ void solve(const vector<vector<float>> &nodes, const vector<vector<float>> &quer
   uint32_t n = nodes.size();
   uint32_t d = nodes[0].size() - 2; // skip first 2 dimensions
   uint32_t nq = queries.size();
-
-  const int K = 100;
   gt.resize(nq);
 
   for (size_t i = 0; i < nq; i++)

@@ -1,9 +1,3 @@
-/**
- *  Brute force approach. Can be used to generate ground truth.
- *  Usage:
- *   ./brute_force data.bin queries.bin output.bin
- */
-
 #include <fstream>
 #include <iostream>
 #include <numeric>
@@ -14,11 +8,7 @@
 #include <assert.h>
 #include "hybrid_vector_search.h"
 
-using std::cout;
-using std::endl;
-using std::pair;
-using std::string;
-using std::vector;
+using namespace std;
 
 /// @brief Save knng in binary format (uint32_t) with name "output.bin"
 /// @param knn a (N * 100) shape 2-D vector
@@ -28,7 +18,6 @@ void SaveKNN(const std::vector<std::vector<uint32_t>> &knns,
              const std::string &path = "output.bin")
 {
     std::ofstream ofs(path, std::ios::out | std::ios::binary);
-    const int K = 100;
     const uint32_t N = knns.size();
     assert(knns.front().size() == K);
     for (unsigned i = 0; i < N; ++i)
@@ -46,7 +35,7 @@ void ReadBin(const std::string &file_path,
              const int num_dimensions,
              std::vector<std::vector<float>> &data)
 {
-    std::cout << "Reading Data: " << file_path << std::endl;
+    std::cout << "Reading data: " << file_path << std::endl;
     std::ifstream ifs;
     ifs.open(file_path, std::ios::binary);
     assert(ifs.is_open());
@@ -156,6 +145,7 @@ int main(int argc, char **argv)
 
     if (option == "-overwriteOutput")
     {
+        cout << "Overwrote output" << endl;
         SaveKNN(knns, output_path);
     }
 

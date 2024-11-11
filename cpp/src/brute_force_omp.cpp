@@ -36,7 +36,6 @@ void solve(const vector<vector<float>> &nodes, const vector<vector<float>> &quer
   uint32_t d = nodes[0].size() - 2; // skip first 2 dimensions
   uint32_t nq = queries.size();
 
-  const int K = 100;
   gt.resize(nq);
 
 #pragma omp parallel for
