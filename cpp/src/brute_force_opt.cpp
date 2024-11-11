@@ -12,6 +12,7 @@
 #include <immintrin.h>
 #include <xmmintrin.h>
 #include <cstring>
+#include <limits>
 #include "util.h"
 #include "hybrid_vector_search.h"
 
@@ -36,7 +37,7 @@ inline float avx2_l2_distance(const float *a, const float *b)
   {
     result += ((float *)&sum)[j];
   }
-  return result; // Return square root of sum
+  return result; // Return distance squared
 }
 
 inline float normal_l2(float const *a, float const *b)
@@ -70,63 +71,92 @@ void solve_with_algined_input(const int num_nodes,
 
   for (int i = 0; i < num_queries; i++)
   {
-    std::priority_queue<std::pair<float, uint32_t>> pq;
+    // Keep track of K nearest nodes so far
+    std::vector<std::pair<float, int32_t>> dummy_distances(K, make_pair(std::numeric_limits<float>::max(), -1));
+    std::priority_queue<std::pair<float, uint32_t>> nearest_nodes(dummy_distances.begin(), dummy_distances.end());
+
     int query_type = query_types[i];
     const float *query_vec = &query_vectors[i * VECTOR_DIM_PADDED];
     int query_value = query_values[i];
     float query_timestamp_l = query_timestamps[i].first;
     float query_timestamp_r = query_timestamps[i].second;
 
-    for (int j = 0; j < num_nodes; ++j)
+    switch (query_type)
     {
-      const float *node_vec = &node_vectors[j * VECTOR_DIM_PADDED];
-      int node_value = node_values[j];
-      float node_timestamp = node_timestamps[j];
-      if (query_type == 0)
+    // Vector Search
+    case 0:
+      for (int j = 0; j < num_nodes; ++j)
       {
+        const float *node_vec = &node_vectors[j * VECTOR_DIM_PADDED];
         float dist = avx2_l2_distance(node_vec, query_vec);
-        pq.push(std::make_pair(-dist, j));
+        if (nearest_nodes.top().first > dist)
+        {
+          nearest_nodes.pop();
+          nearest_nodes.push(std::make_pair(dist, j));
+        }
       }
-      else if (query_type == 1)
+      break;
+    // Vector Search with value constraint
+    case 1:
+      for (int j = 0; j < num_nodes; ++j)
       {
+        const float *node_vec = &node_vectors[j * VECTOR_DIM_PADDED];
+        int node_value = node_values[j];
         if (query_value == node_value)
         {
           float dist = avx2_l2_distance(node_vec, query_vec);
-          pq.push(std::make_pair(-dist, j));
+          if (nearest_nodes.top().first > dist)
+          {
+            nearest_nodes.pop();
+            nearest_nodes.push(std::make_pair(dist, j));
+          }
         }
       }
-      else if (query_type == 2)
+      break;
+    // Vector Search with timestamp constraint
+    case 2:
+      for (int j = 0; j < num_nodes; ++j)
       {
+        const float *node_vec = &node_vectors[j * VECTOR_DIM_PADDED];
+        float node_timestamp = node_timestamps[j];
         if (node_timestamp >= query_timestamp_l && node_timestamp <= query_timestamp_r)
         {
           float dist = avx2_l2_distance(node_vec, query_vec);
-          pq.push(std::make_pair(-dist, j));
+          if (nearest_nodes.top().first > dist)
+          {
+            nearest_nodes.pop();
+            nearest_nodes.push(std::make_pair(dist, j));
+          }
         }
       }
-      else if (query_type == 3)
+      break;
+    // Vector Search with value and timestamp constraint
+    case 3:
+      for (int j = 0; j < num_nodes; ++j)
       {
+        const float *node_vec = &node_vectors[j * VECTOR_DIM_PADDED];
+        int node_value = node_values[j];
+        float node_timestamp = node_timestamps[j];
         if (query_value == node_value && node_timestamp >= query_timestamp_l && node_timestamp <= query_timestamp_r)
         {
           float dist = avx2_l2_distance(node_vec, query_vec);
-          pq.push(std::make_pair(-dist, j));
+          if (nearest_nodes.top().first > dist)
+          {
+            nearest_nodes.pop();
+            nearest_nodes.push(std::make_pair(dist, j));
+          }
         }
       }
+      break;
     }
 
     result[i].resize(K);
-    if (pq.size() < K)
-    {
-      cout << "id: " << i << endl;
-      cout << "query type: " << query_type << " v: " << query_value << " l: " << query_timestamp_l << " r: " << query_timestamp_r << endl;
-      cout << "K: " << pq.size() << endl;
-    }
     for (int j = K - 1; j >= 0; j--)
     {
-      std::pair<float, uint32_t> res = pq.top();
+      std::pair<float, uint32_t> res = nearest_nodes.top();
       result[i][j] = res.second;
-      pq.pop();
+      nearest_nodes.pop();
     }
-
     if (i % 1000 == 0)
       cout << "Processed " << i << "/" << num_queries << " queries\n";
   }
