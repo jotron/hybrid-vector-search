@@ -19,6 +19,8 @@ cd ../
 ./build/brutef_opt ../data/contest-data-release-1m.bin ../data/contest-queries-release-1m.bin ../data/1m-gt.bin
 ./build/brutef_opt_omp ../data/contest-data-release-1m.bin ../data/contest-queries-release-1m.bin ../data/1m-gt.bin
 ./build/brutef_opt_nosimd ../data/contest-data-release-1m.bin ../data/contest-queries-release-1m.bin ../data/1m-gt.bin
+./build/sorted ../data/contest-data-release-1m.bin ../data/contest-queries-release-1m.bin ../data/1m-gt.bin
+
 ```
 
 To execute rust
@@ -40,7 +42,7 @@ Using the 1M dataset with 1_000_000 nodes (~400MB) and 10_000 queries on the IDI
 | C++ Opt. Brute no SIMD    | 229s    |
 | C++ Opt. Brute Force      | 146s    |
 | C++ With OpenMP           | 10s     |
-| C++ With Sorting          | 20s     |
+| C++ With Sorting          | 10s     |
 
 
 - **C++ Naive Brute Force**

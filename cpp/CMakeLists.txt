@@ -51,4 +51,9 @@ if (NOT (${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
     src/appr_brutef_opt_omp.cpp 
     src/main.cpp
     src/io.cpp)
+
+    add_executable(sorted
+    src/appr_sorted.cpp 
+    src/main.cpp
+    src/io.cpp)
 endif()
