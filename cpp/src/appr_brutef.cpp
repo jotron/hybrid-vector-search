@@ -10,25 +10,10 @@
 #include <chrono>
 #include <memory>
 #include "hybrid_vector_search.h"
+#include "io.h"
+#include "distance.h"
 
-using std::cout;
-using std::endl;
-using std::pair;
-using std::string;
-using std::unique_ptr;
-using std::vector;
-
-inline float normal_l2(float const *a, float const *b, unsigned dim)
-{
-  float r = 0;
-  for (unsigned i = 0; i < dim; ++i)
-  {
-    float v = float(a[i]) - float(b[i]);
-    v *= v;
-    r += v;
-  }
-  return r;
-}
+using namespace std;
 
 // Single-Threaded brute force
 void solve(const vector<vector<float>> &nodes, const vector<vector<float>> &queries, vector<vector<uint32_t>> &gt)
@@ -103,4 +88,20 @@ void solve(const vector<vector<float>> &nodes, const vector<vector<float>> &quer
     if (i % 1000 == 0)
       cout << "Processed " << i << "/" << nq << " queries\n";
   }
+}
+
+void solve(std::string &data_path, std::string &queries_path, vector<vector<uint32_t>> &knn)
+{
+  // Read nodes
+  const uint32_t num_data_dimensions = 102;
+  vector<vector<float>> nodes;
+  ReadBin(data_path, num_data_dimensions, nodes);
+
+  // Read queries
+  uint32_t num_query_dimensions = num_data_dimensions + 2;
+  vector<vector<float>> queries;
+  ReadBin(queries_path, num_query_dimensions, queries);
+
+  // Calculate
+  solve(nodes, queries, knn);
 }

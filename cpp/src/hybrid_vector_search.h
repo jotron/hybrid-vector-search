@@ -1,15 +1,15 @@
-/**
- *  Interface for different versions to implement
- */
+#pragma once
 #include <vector>
-using std::vector;
 
+/**
+ *  Global Parameters
+ */
 #define VECTOR_DIM 100
+#define VECTOR_DIM_PADDED 104
 #define K 100
 
 /**
- * @param nodes: nodes encoded as 102 size arrays. node[0] = value, node[1] = timestamp, node[2..] = vector
- * @param queries: queries encoded as 104 size arrays.
+ * Interface for Implementations
  * @out knn
  */
-void solve(const vector<vector<float>> &nodes, const vector<vector<float>> &queries, vector<vector<uint32_t>> &knn);
+void solve(std::string &data_path, std::string &queries_path, std::vector<std::vector<uint32_t>> &knn);

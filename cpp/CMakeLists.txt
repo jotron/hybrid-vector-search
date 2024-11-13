@@ -22,8 +22,7 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 # LINUX
 else()
-    # Try out if difference using -mfma -mavx2 -ftree-vectorize 
-    set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wfatal-errors -DNDEBUG -O3 -march=native -mtune=native -fopenmp -fopenmp-simd")
+    set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wfatal-errors -DNDEBUG -O3 -march=native -mtune=native -fopenmp -fopenmp-simd -mfma -mavx2 -ftree-vectorize")
 endif()
 
 set(OMP_NUM_THREADS "40")
@@ -31,17 +30,25 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON) # Code intelligence use
 
-add_executable(brute_force 
-    src/brute_force.cpp 
-     src/main.cpp)
+add_executable(brutef 
+    src/appr_brutef.cpp 
+    src/main.cpp
+    src/io.cpp)
+
+add_executable(brutef_opt_nosimd 
+    src/appr_brutef_opt_nosimd.cpp 
+    src/main.cpp
+    src/io.cpp)
 
 # Require AVX
 if (NOT (${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
-    add_executable(brute_force_opt 
-        src/brute_force_opt.cpp 
-        src/main.cpp)
+    add_executable(brutef_opt 
+    src/appr_brutef_opt.cpp 
+    src/main.cpp
+    src/io.cpp)
 
-    add_executable(brute_force_omp 
-        src/brute_force_omp.cpp 
-        src/main.cpp)
+    add_executable(brutef_opt_omp
+    src/appr_brutef_opt_omp.cpp 
+    src/main.cpp
+    src/io.cpp)
 endif()
