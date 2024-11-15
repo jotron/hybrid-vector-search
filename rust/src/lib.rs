@@ -5,20 +5,18 @@ use std::io::{BufReader, Read};
 use std::path::Path;
 use std::time::Instant;
 
-//mod presorted_naive;
-mod presorted_ngt;
-//mod brute_force;
-//mod brute_force_opt;
+pub const NODE_DIMENSIONS: usize = 102;
+pub const QUERY_DIMENSIONS: usize = 104;
+pub const K_NEAREST_NEIGHBOURS: usize = 100;
 
-const NODE_DIMENSIONS: usize = 102;
-const QUERY_DIMENSIONS: usize = 104;
-const K_NEAREST_NEIGHBOURS: usize = 100;
-
-fn main() {
+pub fn run_with_solver(solve: fn(nodes: Vec<Vec<f32>>, queries: Vec<Vec<f32>>) -> Vec<Vec<u32>>) {
     let args: Vec<String> = env::args().collect();
     let source_path = &args[1];
     let query_path = &args[2];
-    let gt_path = &args[3];
+    let gt_path = "";
+    if args.len() > 3 {
+        let gt_path = &args[3];
+    }
 
     // Read nodes & queries
     let nodes = read_bin(source_path, NODE_DIMENSIONS);
@@ -29,22 +27,22 @@ fn main() {
     // Start Timing
     let start = Instant::now();
     // Calculate
-    let knns: Vec<Vec<u32>> = presorted_ngt::solve(nodes, queries);
+    let knns: Vec<Vec<u32>> = solve(nodes, queries);
     // Stop Timing
     let duration = start.elapsed().as_millis();
 
-    // Read ground truth
-    let gt_knns: Vec<Vec<u32>> = read_output_bin(gt_path, num_queries);
-
-    // Calculate recall
-    let recall = get_knn_recall(&knns, &gt_knns);
-    println!("Recall: {}", recall);
     println!(
         "Total time for {} nodes and {} queries: {}ms",
-        num_nodes,
-        num_queries,
-        duration
+        num_nodes, num_queries, duration
     );
+
+    // Read ground truth if available
+    if gt_path != "" {
+        println!("Calculating recall...");
+        let gt_knns: Vec<Vec<u32>> = read_output_bin(gt_path, num_queries);
+        let recall = get_knn_recall(&knns, &gt_knns);
+        println!("  recall = {}", recall);
+    }
 }
 
 fn read_bin(path: &str, dim: usize) -> Vec<Vec<f32>> {

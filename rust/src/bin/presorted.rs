@@ -1,16 +1,16 @@
-/**
- * For queries of type 0: Use NGT
- * For queries of type 1, 2, 3 use brute force on subset
- */
 use ordered_float::NotNan;
 use rayon::prelude::*;
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 
-const QUERY_DIMENSIONS: usize = 104;
-const K_NEAREST_NEIGHBOURS: usize = 100;
+use hybrid_vector_search::K_NEAREST_NEIGHBOURS;
+use hybrid_vector_search::QUERY_DIMENSIONS;
 
-pub fn solve(nodes: &Vec<Vec<f32>>, queries: &Vec<Vec<f32>>) -> Vec<Vec<u32>> {
+fn main() {
+    hybrid_vector_search::run_with_solver(solve);
+}
+
+pub fn solve(nodes: Vec<Vec<f32>>, queries: Vec<Vec<f32>>) -> Vec<Vec<u32>> {
     let mut result = vec![vec![0u32; K_NEAREST_NEIGHBOURS]; queries.len()];
 
     // Pre-Sorting
@@ -25,7 +25,7 @@ pub fn solve(nodes: &Vec<Vec<f32>>, queries: &Vec<Vec<f32>>) -> Vec<Vec<u32>> {
     result
         .par_iter_mut()
         .enumerate()
-        .zip(queries)
+        .zip(&queries)
         .for_each(|((i, out), query)| {
             let query_type: u32 = query[0] as u32;
             let v = query[1] as i32;

@@ -1,10 +1,14 @@
 use ordered_float::NotNan;
 use std::collections::BinaryHeap;
 
-const QUERY_DIMENSIONS: usize = 104;
-const K_NEAREST_NEIGHBOURS: usize = 100;
+use hybrid_vector_search::K_NEAREST_NEIGHBOURS;
+use hybrid_vector_search::QUERY_DIMENSIONS;
 
-pub fn solve(nodes: &Vec<Vec<f32>>, queries: &Vec<Vec<f32>>) -> Vec<Vec<u32>> {
+fn main() {
+    hybrid_vector_search::run_with_solver(solve);
+}
+
+pub fn solve(nodes: Vec<Vec<f32>>, queries: Vec<Vec<f32>>) -> Vec<Vec<u32>> {
     let mut result = vec![vec![0u32; K_NEAREST_NEIGHBOURS]; queries.len()];
 
     for i in 0..queries.len() {
