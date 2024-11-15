@@ -11,7 +11,7 @@
 #include <memory>
 #include "hybrid_vector_search.h"
 #include "io.h"
-#include "distance.h"
+#include "distance_simd.h"
 
 using namespace std;
 

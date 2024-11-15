@@ -38,64 +38,49 @@ cargo run --release ../data/dummy-data.bin ../data/dummy-queries.bin
 cargo run --release  ../data/contest-data-release-1m.bin ../data/contest-queries-release-1m.bin
 ```
 
-## Use
+## Running the CPP Code
 
-To execute the cpp baseline on the dummy dataset execute.
+The code uses OpenMP for data-parellism. A working OpenMP installation is a prerequisite.
+Some of the versions further leverage SIMD AVX instructions.
+
+### Mac OSX
+Getting OpenMP to work on macOS is not trivial. 
+Apple disables OpenMP in the clang version shipped by default. 
+A fix is using clang via *brew install llvm* with ompiler arguments *-fexperimental-library -stdlib=libc++*.
+
+The build script detects if the platform is macOS and performs most of the above automatically. Manually one only needs to run *brew install llvm* first.
+If the detected platform is macOS the build script does not generate versions requiring AVX.
+
+### Workflow
+
 ```
 mkdir cpp/build
 cd cpp/build
 cmake ..
 make
 cd ../
-./build/brute_force ../data/dummy-data.bin ../data/dummy-queries.bin ../data/dummy-gt.bin
-./build/brute_force ../data/contest-data-release-1m.bin ../data/contest-queries-release-1m.bin ../data/1m-gt.bin
-./build/brutef_opt ../data/contest-data-release-1m.bin ../data/contest-queries-release-1m.bin ../data/1m-gt.bin
-./build/brutef_opt_omp ../data/contest-data-release-1m.bin ../data/contest-queries-release-1m.bin ../data/1m-gt.bin
-./build/brutef_opt_nosimd ../data/contest-data-release-1m.bin ../data/contest-queries-release-1m.bin ../data/1m-gt.bin
-./build/sorted ../data/contest-data-release-1m.bin ../data/contest-queries-release-1m.bin ../data/1m-gt.bin
+./build/brutef ../data/dummy-data.bin ../data/dummy-queries.bin 
+./build/brutef_opt ../data/dummy-data.bin ../data/dummy-queries.bin 
+./build/brutef_opt_omp ../data/contest-data-release-1m.bin ../data/contest-queries-release-1m.bin
+./build/brutef_force_omp ../data/contest-data-release-10m.bin ../data/contest-queries-release-10m.bin
 
+// To generate ground truth
+./build/brutef ../data/dummy-data.bin ../data/dummy-queries.bin ../data/dummy-gt.bin --overwriteOutput
+// To calculate recall in comparison to ground truth
+./build/brutef ../data/dummy-data.bin ../data/dummy-queries.bin ../data/dummy-gt.bin
 ```
 
-## Performance Measurements for 1M
+## Performance Measurements
 
-Measure execution time excluding IO.
-Using the 1M dataset with 1_000_000 nodes (~400MB) and 10_000 queries on the IDI machine.
+Details can be found in the report. For intuition, on a powerful machine I measure the following for the 1M dataset: 
 
 | Version                   | Runtime |
 | ------------------------- | ------- |
 | C++ Naive Brute Force     | 420s    |
 | C++ Opt. Brute no SIMD    | 229s    |
-| C++ Opt. Brute Force      | 146s    |
+| C++ Opt. Brute            | 146s    |
 | C++ With OpenMP           | 10s     |
 | C++ With Sorting          | 10s     |
-
-
-- **C++ Naive Brute Force**
-
-  Compiler-Optimized, Single-Threaded, No SIMD, No Sorting
-
-- **C++ Optimized Brute Force**
-  
-  Single-Threaded, but otherwise all optimizations one can think of, i.e. Sorting, SIMD, ILP
-
-- **C++ OpenMP Parellelized Brute Force**
-  
-  Like above but with 40 Threads.
-  
-- Rust Naive Brute Force
-
-- Rust Parallelized
-  ***28s***
-
-- Rust with NGT
-  ***42s***
-
-- Contest Winners Implementation
-  ***1s***
-
-## Performance Measurements for 10M
-
-Using the 10M dataset with 10_000_000 nodes and 100_000 queries on the IDI machine.
 
 
 

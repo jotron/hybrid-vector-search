@@ -13,7 +13,7 @@
 #include <ranges>
 #include "hybrid_vector_search.h"
 #include "io.h"
-#include "distance.h"
+#include "distance_simd.h"
 
 using namespace std;
 
@@ -38,29 +38,33 @@ void solve_with_algined_input(const int num_nodes,
   vector<int> node_idx_sorted_by_value(num_nodes);
   iota(node_idx_sorted_by_timestamp.begin(), node_idx_sorted_by_timestamp.end(), 0);
   iota(node_idx_sorted_by_value.begin(), node_idx_sorted_by_value.end(), 0);
-  std::sort(node_idx_sorted_by_timestamp.begin(), node_idx_sorted_by_timestamp.end(), [&](int i, int j) {
-    return node_timestamps[i] < node_timestamps[j];
-  });
-  std::sort(node_idx_sorted_by_value.begin(), node_idx_sorted_by_value.end(), [&](int i, int j) {
-    return node_values[i] < node_values[j] || (node_values[i] == node_values[j] && node_timestamps[i] < node_timestamps[j]);  
-  });
-  auto cmp_value_l = [&](int i, int value) -> bool {
+  std::sort(node_idx_sorted_by_timestamp.begin(), node_idx_sorted_by_timestamp.end(), [&](int i, int j)
+            { return node_timestamps[i] < node_timestamps[j]; });
+  std::sort(node_idx_sorted_by_value.begin(), node_idx_sorted_by_value.end(), [&](int i, int j)
+            { return node_values[i] < node_values[j] || (node_values[i] == node_values[j] && node_timestamps[i] < node_timestamps[j]); });
+  auto cmp_value_l = [&](int i, int value) -> bool
+  {
     return node_values[i] < value;
   };
-  auto cmp_value_r = [&](int value, int i) -> bool {
+  auto cmp_value_r = [&](int value, int i) -> bool
+  {
     return node_values[i] > value;
   };
-  auto cmp_timestamp_l = [&](int i, float timestamp) -> bool {
-    return node_timestamps[i] < timestamp;  
+  auto cmp_timestamp_l = [&](int i, float timestamp) -> bool
+  {
+    return node_timestamps[i] < timestamp;
   };
-  auto cmp_timestamp_r = [&](float timestamp, int i) -> bool {
-    return node_timestamps[i] > timestamp;  
+  auto cmp_timestamp_r = [&](float timestamp, int i) -> bool
+  {
+    return node_timestamps[i] > timestamp;
   };
-  auto cmp_value_timestamp_l = [&](const int i, const pair<int, float>& value_timestamp) -> bool {
-    return node_values[i] < value_timestamp.first || (node_values[i] == value_timestamp.first && node_timestamps[i] < value_timestamp.second);  
+  auto cmp_value_timestamp_l = [&](const int i, const pair<int, float> &value_timestamp) -> bool
+  {
+    return node_values[i] < value_timestamp.first || (node_values[i] == value_timestamp.first && node_timestamps[i] < value_timestamp.second);
   };
-  auto cmp_value_timestamp_r = [&](const pair<int, float>& value_timestamp, const int i) -> bool {
-    return node_values[i] > value_timestamp.first || (node_values[i] == value_timestamp.first && node_timestamps[i] > value_timestamp.second);  
+  auto cmp_value_timestamp_r = [&](const pair<int, float> &value_timestamp, const int i) -> bool
+  {
+    return node_values[i] > value_timestamp.first || (node_values[i] == value_timestamp.first && node_timestamps[i] > value_timestamp.second);
   };
 
   // END
@@ -81,7 +85,8 @@ void solve_with_algined_input(const int num_nodes,
     switch (query_type)
     {
     // Vector Search
-    case 0: {
+    case 0:
+    {
       for (int j = 0; j < num_nodes; ++j)
       {
         const float *node_vec = &node_vectors[j * VECTOR_DIM_PADDED];
@@ -95,7 +100,8 @@ void solve_with_algined_input(const int num_nodes,
       break;
     }
     // Vector Search with value constraint
-    case 1: {
+    case 1:
+    {
       int start_node = std::distance(node_idx_sorted_by_value.begin(), std::lower_bound(node_idx_sorted_by_value.begin(), node_idx_sorted_by_value.end(), query_value, cmp_value_l));
       int end_node = std::distance(node_idx_sorted_by_value.begin(), std::upper_bound(node_idx_sorted_by_value.begin(), node_idx_sorted_by_value.end(), query_value, cmp_value_r));
       for (int l = start_node; l < end_node; ++l)
@@ -112,11 +118,12 @@ void solve_with_algined_input(const int num_nodes,
       break;
     }
     // Vector Search with timestamp constraint
-    case 2: {
-      int start_node = std::distance(node_idx_sorted_by_timestamp.begin(), 
-        std::lower_bound(node_idx_sorted_by_timestamp.begin(), node_idx_sorted_by_timestamp.end(), query_timestamp_l, cmp_timestamp_l));
-      int end_node = std::distance(node_idx_sorted_by_timestamp.begin(), 
-        std::upper_bound(node_idx_sorted_by_timestamp.begin(), node_idx_sorted_by_timestamp.end(), query_timestamp_r, cmp_timestamp_r));
+    case 2:
+    {
+      int start_node = std::distance(node_idx_sorted_by_timestamp.begin(),
+                                     std::lower_bound(node_idx_sorted_by_timestamp.begin(), node_idx_sorted_by_timestamp.end(), query_timestamp_l, cmp_timestamp_l));
+      int end_node = std::distance(node_idx_sorted_by_timestamp.begin(),
+                                   std::upper_bound(node_idx_sorted_by_timestamp.begin(), node_idx_sorted_by_timestamp.end(), query_timestamp_r, cmp_timestamp_r));
       for (int l = start_node; l < end_node; ++l)
       {
         int j = node_idx_sorted_by_timestamp[l];
@@ -126,12 +133,13 @@ void solve_with_algined_input(const int num_nodes,
         {
           nearest_nodes.pop();
           nearest_nodes.push(std::make_pair(dist, j));
-        }        
+        }
       }
       break;
     }
     // Vector Search with value and timestamp constraint
-    case 3: {
+    case 3:
+    {
       int start_node = std::distance(node_idx_sorted_by_value.begin(), std::lower_bound(node_idx_sorted_by_value.begin(), node_idx_sorted_by_value.end(), make_pair(query_value, query_timestamp_l), cmp_value_timestamp_l));
       int end_node = std::distance(node_idx_sorted_by_value.begin(), std::upper_bound(node_idx_sorted_by_value.begin(), node_idx_sorted_by_value.end(), make_pair(query_value, query_timestamp_r), cmp_value_timestamp_r));
       for (int l = start_node; l < end_node; ++l)

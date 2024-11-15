@@ -34,14 +34,14 @@ void ReadBin(const std::string &file_path,
              const int num_dimensions,
              std::vector<std::vector<float>> &data)
 {
-    std::cout << "Reading data: " << file_path << std::endl;
+    // std::cout << "Reading data: " << file_path << std::endl;
     std::ifstream ifs;
     ifs.open(file_path, std::ios::binary);
     assert(ifs.is_open());
     uint32_t N; // num of points
     ifs.read((char *)&N, sizeof(uint32_t));
     data.resize(N);
-    std::cout << "# of points: " << N << std::endl;
+    // std::cout << "# of points: " << N << std::endl;
     std::vector<float> buff(num_dimensions);
     int counter = 0;
     while (ifs.read((char *)buff.data(), num_dimensions * sizeof(float)))
@@ -54,7 +54,6 @@ void ReadBin(const std::string &file_path,
         data[counter++] = std::move(row);
     }
     ifs.close();
-    std::cout << "Finish Reading Data" << endl;
 }
 
 /// @brief Reading output bin
@@ -65,8 +64,6 @@ void ReadOutputBin(const std::string &file_path,
                    std::vector<std::vector<uint32_t>> &data,
                    const int num_dimensions = 100)
 {
-    std::cout << "Reading output/ground-truth data: " << file_path << std::endl;
-
     std::ifstream ifs;
     ifs.open(file_path, std::ios::binary);
     assert(ifs.is_open());
@@ -79,5 +76,4 @@ void ReadOutputBin(const std::string &file_path,
         data[counter++] = std::move(row);
     }
     ifs.close();
-    std::cout << "Finish reading output/ground-truth data" << endl;
 }

@@ -19,7 +19,7 @@ fn main() {
     if args.len() > 3 {
         gt_path = &args[3];
     }
-    
+
     // Read nodes & queries
     let nodes = read_bin(source_path, NODE_DIMENSIONS);
     let queries = read_bin(query_path, QUERY_DIMENSIONS);
