@@ -13,9 +13,9 @@ pub fn run_with_solver(solve: fn(nodes: Vec<Vec<f32>>, queries: Vec<Vec<f32>>) -
     let args: Vec<String> = env::args().collect();
     let source_path = &args[1];
     let query_path = &args[2];
-    let gt_path = "";
+    let mut gt_path = "";
     if args.len() > 3 {
-        let gt_path = &args[3];
+        gt_path = &args[3];
     }
 
     // Read nodes & queries
@@ -84,8 +84,6 @@ fn read_output_bin(path: &str, size: usize) -> Vec<Vec<u32>> {
             .unwrap();
         data[i] = buffer.clone();
     }
-
-    println!("Finish reading ground truth data");
     data
 }
 
