@@ -5,11 +5,14 @@ use std::io::{BufReader, Read};
 use std::path::Path;
 use std::time::Instant;
 
+pub const VECTOR_DIMENSIONS: usize = 100;
 pub const NODE_DIMENSIONS: usize = 102;
 pub const QUERY_DIMENSIONS: usize = 104;
 pub const K_NEAREST_NEIGHBOURS: usize = 100;
 
 pub fn run_with_solver(solve: fn(nodes: Vec<Vec<f32>>, queries: Vec<Vec<f32>>) -> Vec<Vec<u32>>) {
+    let start = Instant::now();
+
     let args: Vec<String> = env::args().collect();
     let source_path = &args[1];
     let query_path = &args[2];
@@ -24,8 +27,6 @@ pub fn run_with_solver(solve: fn(nodes: Vec<Vec<f32>>, queries: Vec<Vec<f32>>) -
     let num_nodes = nodes.len();
     let num_queries = queries.len();
 
-    // Start Timing
-    let start = Instant::now();
     // Calculate
     let knns: Vec<Vec<u32>> = solve(nodes, queries);
     // Stop Timing
