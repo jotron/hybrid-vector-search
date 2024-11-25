@@ -60,4 +60,9 @@ if (NOT (${CMAKE_SYSTEM_NAME} MATCHES "Darwin"))
     src/appr_sorted.cpp 
     src/main.cpp
     src/io.cpp)
+
+    add_executable(final
+    src/appr_final.cpp 
+    src/main.cpp
+    src/io.cpp)
 endif()
